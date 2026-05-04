@@ -18,7 +18,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.datossinmvvm.data.TipoIncidente
 import com.example.datossinmvvm.data.Urgencia
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -27,31 +26,33 @@ fun FormularioScreen(
     viewModel: IncidenteViewModel,
     onVolver: () -> Unit
 ) {
-    var tipo by remember { mutableStateOf(TipoIncidente.HUECO) }
+    val categorias by viewModel.categorias.collectAsState()
+
+    var categoriaSeleccionada by remember(categorias) {
+        mutableStateOf(categorias.firstOrNull())
+    }
     var descripcion by remember { mutableStateOf("") }
     var ubicacion by remember { mutableStateOf("") }
     var urgencia by remember { mutableStateOf(Urgencia.MEDIA) }
-    var tipoExpanded by remember { mutableStateOf(false) }
+    var categoriaExpanded by remember { mutableStateOf(false) }
     var errorDescripcion by remember { mutableStateOf(false) }
     var errorUbicacion by remember { mutableStateOf(false) }
+    var errorCategoria by remember { mutableStateOf(false) }
+
+    // Actualizar categoría seleccionada cuando cargan las categorías
+    LaunchedEffect(categorias) {
+        if (categoriaSeleccionada == null && categorias.isNotEmpty()) {
+            categoriaSeleccionada = categorias.first()
+        }
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = {
-                    Text(
-                        "Nuevo incidente",
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
-                },
+                title = { Text("Nuevo incidente", fontWeight = FontWeight.Bold, color = Color.White) },
                 navigationIcon = {
                     IconButton(onClick = onVolver) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Volver",
-                            tint = Color.White
-                        )
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver", tint = Color.White)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = PurplePrimary)
@@ -67,44 +68,59 @@ fun FormularioScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            // Tipo de incidente
+
+            // Selector de categoría
             Column {
-                Text(
-                    "Tipo de incidente",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = Color(0xFF333333),
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
-                ExposedDropdownMenuBox(
-                    expanded = tipoExpanded,
-                    onExpandedChange = { tipoExpanded = it }
-                ) {
-                    OutlinedTextField(
-                        value = "${tipoEmoji(tipo)}  ${tipo.label}",
-                        onValueChange = {},
-                        readOnly = true,
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(tipoExpanded) },
+                Text("Tipo de incidente", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF333333), modifier = Modifier.padding(bottom = 8.dp))
+
+                if (categorias.isEmpty()) {
+                    Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .menuAnchor(),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            unfocusedContainerColor = Color.White,
-                            focusedContainerColor = Color.White,
-                            focusedBorderColor = PurplePrimary,
-                            unfocusedBorderColor = Color(0xFFE0E0E0)
-                        )
-                    )
-                    ExposedDropdownMenu(
-                        expanded = tipoExpanded,
-                        onDismissRequest = { tipoExpanded = false }
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color(0xFFFFF8E1))
+                            .padding(16.dp)
                     ) {
-                        TipoIncidente.entries.forEach { t ->
-                            DropdownMenuItem(
-                                text = { Text("${tipoEmoji(t)}  ${t.label}") },
-                                onClick = { tipo = t; tipoExpanded = false }
+                        Text(
+                            "No hay categorías. Créalas desde el ícono 🏷 en la pantalla principal.",
+                            fontSize = 13.sp,
+                            color = Color(0xFFF57F17)
+                        )
+                    }
+                } else {
+                    ExposedDropdownMenuBox(
+                        expanded = categoriaExpanded,
+                        onExpandedChange = { categoriaExpanded = it }
+                    ) {
+                        OutlinedTextField(
+                            value = categoriaSeleccionada?.let { "${it.emoji}  ${it.nombre}" } ?: "Selecciona un tipo",
+                            onValueChange = {},
+                            readOnly = true,
+                            isError = errorCategoria,
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(categoriaExpanded) },
+                            modifier = Modifier.fillMaxWidth().menuAnchor(),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                unfocusedContainerColor = Color.White,
+                                focusedContainerColor = Color.White,
+                                focusedBorderColor = PurplePrimary,
+                                unfocusedBorderColor = Color(0xFFE0E0E0)
                             )
+                        )
+                        ExposedDropdownMenu(
+                            expanded = categoriaExpanded,
+                            onDismissRequest = { categoriaExpanded = false }
+                        ) {
+                            categorias.forEach { cat ->
+                                DropdownMenuItem(
+                                    text = { Text("${cat.emoji}  ${cat.nombre}") },
+                                    onClick = {
+                                        categoriaSeleccionada = cat
+                                        errorCategoria = false
+                                        categoriaExpanded = false
+                                    }
+                                )
+                            }
                         }
                     }
                 }
@@ -112,13 +128,7 @@ fun FormularioScreen(
 
             // Descripción
             Column {
-                Text(
-                    "Descripción",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = Color(0xFF333333),
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
+                Text("Descripción", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF333333), modifier = Modifier.padding(bottom = 8.dp))
                 OutlinedTextField(
                     value = descripcion,
                     onValueChange = { if (it.length <= 200) { descripcion = it; errorDescripcion = false } },
@@ -146,13 +156,7 @@ fun FormularioScreen(
 
             // Ubicación
             Column {
-                Text(
-                    "Ubicación (calle / referencia)",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = Color(0xFF333333),
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
+                Text("Ubicación (calle / referencia)", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF333333), modifier = Modifier.padding(bottom = 8.dp))
                 OutlinedTextField(
                     value = ubicacion,
                     onValueChange = { if (it.length <= 100) { ubicacion = it; errorUbicacion = false } },
@@ -178,32 +182,20 @@ fun FormularioScreen(
                 )
             }
 
-            // Urgencia — selector visual
+            // Urgencia visual
             Column {
-                Text(
-                    "Urgencia",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = Color(0xFF333333),
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
+                Text("Urgencia", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF333333), modifier = Modifier.padding(bottom = 8.dp))
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Urgencia.entries.forEach { u ->
                         val selected = urgencia == u
-                        val borderColor = if (selected) urgenciaTextColor(u) else Color(0xFFE0E0E0)
-                        val bgColor = if (selected) urgenciaBgColor(u) else Color.White
-
                         Box(
                             modifier = Modifier
                                 .weight(1f)
                                 .clip(RoundedCornerShape(12.dp))
-                                .background(bgColor)
+                                .background(if (selected) urgenciaBgColor(u) else Color.White)
                                 .border(
                                     width = if (selected) 2.dp else 1.dp,
-                                    color = borderColor,
+                                    color = if (selected) urgenciaTextColor(u) else Color(0xFFE0E0E0),
                                     shape = RoundedCornerShape(12.dp)
                                 )
                                 .clickable { urgencia = u }
@@ -211,19 +203,9 @@ fun FormularioScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text(
-                                    urgenciaIcon(u),
-                                    fontSize = 22.sp,
-                                    color = urgenciaTextColor(u),
-                                    fontWeight = FontWeight.Bold
-                                )
+                                Text(urgenciaIcon(u), fontSize = 22.sp, color = urgenciaTextColor(u), fontWeight = FontWeight.Bold)
                                 Spacer(Modifier.height(4.dp))
-                                Text(
-                                    u.label,
-                                    fontSize = 13.sp,
-                                    color = urgenciaTextColor(u),
-                                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
-                                )
+                                Text(u.label, fontSize = 13.sp, color = urgenciaTextColor(u), fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal)
                             }
                         }
                     }
@@ -232,14 +214,14 @@ fun FormularioScreen(
 
             Spacer(Modifier.height(4.dp))
 
-            // Botón guardar
             Button(
                 onClick = {
+                    errorCategoria = categoriaSeleccionada == null
                     errorDescripcion = descripcion.isBlank()
                     errorUbicacion = ubicacion.isBlank()
-                    if (!errorDescripcion && !errorUbicacion) {
+                    if (!errorCategoria && !errorDescripcion && !errorUbicacion) {
                         viewModel.registrarIncidente(
-                            tipo = tipo,
+                            categoriaId = categoriaSeleccionada!!.id,
                             descripcion = descripcion.trim(),
                             ubicacion = ubicacion.trim(),
                             urgencia = urgencia
@@ -247,18 +229,11 @@ fun FormularioScreen(
                         onVolver()
                     }
                 },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(54.dp),
+                modifier = Modifier.fillMaxWidth().height(54.dp),
                 shape = RoundedCornerShape(14.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = PurplePrimary)
             ) {
-                Text(
-                    "Guardar incidente",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = Color.White
-                )
+                Text("Guardar incidente", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
             }
 
             Spacer(Modifier.height(16.dp))

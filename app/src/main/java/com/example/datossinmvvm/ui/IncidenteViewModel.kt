@@ -1,4 +1,3 @@
-// ui/IncidenteViewModel.kt
 package com.example.datossinmvvm.ui
 
 import android.app.Application
@@ -12,40 +11,42 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalCoroutinesApi::class)
 class IncidenteViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val dao = IncidenteDatabase.getDatabase(application).incidenteDao()
+    private val db = IncidenteDatabase.getDatabase(application)
+    private val incidenteDao = db.incidenteDao()
+    private val categoriaDao = db.categoriaDao()
 
-    // Filtro activo: null = mostrar todos
-    private val _filtroTipo = MutableStateFlow<TipoIncidente?>(null)
-    val filtroTipo: StateFlow<TipoIncidente?> = _filtroTipo.asStateFlow()
+    // Filtro activo por categoría (null = todos)
+    private val _filtroCategoria = MutableStateFlow<Int?>(null)
+    val filtroCategoria: StateFlow<Int?> = _filtroCategoria.asStateFlow()
 
-    // Lista reactiva: se recalcula automáticamente cuando cambia el filtro
-    val incidentes: StateFlow<List<Incidente>> = _filtroTipo
-        .flatMapLatest { tipo ->
-            if (tipo == null) dao.getAll()
-            else dao.getByTipo(tipo.name)
+    // Lista de categorías disponibles
+    val categorias: StateFlow<List<Categoria>> = categoriaDao.getAll()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    // Lista de incidentes filtrada reactivamente
+    val incidentes: StateFlow<List<Incidente>> = _filtroCategoria
+        .flatMapLatest { categoriaId ->
+            if (categoriaId == null) incidenteDao.getAll()
+            else incidenteDao.getByCategoriaId(categoriaId)
         }
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = emptyList()
-        )
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
-    fun setFiltro(tipo: TipoIncidente?) {
-        _filtroTipo.value = tipo
+    fun setFiltro(categoriaId: Int?) {
+        _filtroCategoria.value = categoriaId
     }
 
-    fun getIncidenteById(id: Int): Flow<Incidente?> = dao.getById(id)
+    fun getIncidenteById(id: Int): Flow<Incidente?> = incidenteDao.getById(id)
 
     fun registrarIncidente(
-        tipo: TipoIncidente,
+        categoriaId: Int,
         descripcion: String,
         ubicacion: String,
         urgencia: Urgencia
     ) {
         viewModelScope.launch {
-            dao.insertar(
+            incidenteDao.insertar(
                 Incidente(
-                    tipo = tipo,
+                    categoriaId = categoriaId,
                     descripcion = descripcion,
                     ubicacion = ubicacion,
                     urgencia = urgencia
@@ -54,16 +55,33 @@ class IncidenteViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
-    // DECISIÓN TÉCNICA: La lógica de transición de estado vive aquí,
-    // no en el Composable. El Composable solo llama a esta función.
     fun avanzarEstado(incidente: Incidente) {
         val nuevoEstado = when (incidente.estado) {
             EstadoIncidente.REPORTADO -> EstadoIncidente.EN_ATENCION
             EstadoIncidente.EN_ATENCION -> EstadoIncidente.RESUELTO
-            EstadoIncidente.RESUELTO -> EstadoIncidente.RESUELTO // ya no avanza
+            EstadoIncidente.RESUELTO -> EstadoIncidente.RESUELTO
         }
         viewModelScope.launch {
-            dao.actualizar(incidente.copy(estado = nuevoEstado))
+            incidenteDao.actualizar(incidente.copy(estado = nuevoEstado))
+        }
+    }
+
+    // Crear nueva categoría personalizada
+    fun crearCategoria(nombre: String, emoji: String) {
+        viewModelScope.launch {
+            categoriaDao.insertar(Categoria(nombre = nombre.trim(), emoji = emoji))
+        }
+    }
+
+    // Eliminar categoría (solo si no tiene incidentes asociados)
+    fun eliminarCategoria(categoria: Categoria, onError: () -> Unit) {
+        viewModelScope.launch {
+            val count = categoriaDao.contarIncidentes(categoria.id)
+            if (count > 0) {
+                onError()
+            } else {
+                categoriaDao.eliminar(categoria)
+            }
         }
     }
 }
