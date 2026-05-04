@@ -146,6 +146,9 @@ El ViewModel expone un `MutableStateFlow<Int?>` para el filtro de categoría act
 
 ![image alt](https://github.com/diegohuacca-hub/ChaquiApp/blob/c7c6ddac1055c08ef4594fd15212ffd728584588/WhatsApp%20Image%202026-05-04%20at%206.06.48%20PM.jpeg)
 
+![image alt](https://github.com/diegohuacca-hub/ChaquiApp/blob/db318c43ba0b33b3bb5aa37cc49ae729511c6ef0/Captura%20de%20pantalla%202026-05-04%20183457.png)
+
+![image alt](https://github.com/diegohuacca-hub/ChaquiApp/blob/db318c43ba0b33b3bb5aa37cc49ae729511c6ef0/Captura%20de%20pantalla%202026-05-04%20183516.png)
 ## Pregunta de sustento
 
 **"¿Por qué pusiste el cambio de estado en el ViewModel y no directo en el Composable?"**
