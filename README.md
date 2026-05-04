@@ -138,8 +138,13 @@ El ViewModel expone un `MutableStateFlow<Int?>` para el filtro de categoría act
 
 ## Screenshots
 
+![image alt](https://github.com/diegohuacca-hub/ChaquiApp/blob/c7c6ddac1055c08ef4594fd15212ffd728584588/WhatsApp%20Image%202026-05-04%20at%206.06.47%20PM%20(1).jpeg)
 
+![image alt](https://github.com/diegohuacca-hub/ChaquiApp/blob/c7c6ddac1055c08ef4594fd15212ffd728584588/WhatsApp%20Image%202026-05-04%20at%206.06.47%20PM%20(2).jpeg)
 
+![image alt](https://github.com/diegohuacca-hub/ChaquiApp/blob/c7c6ddac1055c08ef4594fd15212ffd728584588/WhatsApp%20Image%202026-05-04%20at%206.06.47%20PM.jpeg)
+
+![image alt](https://github.com/diegohuacca-hub/ChaquiApp/blob/c7c6ddac1055c08ef4594fd15212ffd728584588/WhatsApp%20Image%202026-05-04%20at%206.06.48%20PM.jpeg)
 
 ## Pregunta de sustento
 
